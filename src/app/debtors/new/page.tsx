@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createDebtor } from "@/lib/data/debtors";
 import { CURRENCIES } from "@/lib/currencies";
+import { DEBTOR_DEFAULTS } from "@/lib/debtors/types";
 
 export default function NewDebtorPage() {
   const router = useRouter();
@@ -31,49 +32,169 @@ export default function NewDebtorPage() {
     <AppShell current="/debtors">
       <div className="mx-auto max-w-xl space-y-5">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Add person who owes you</h1>
-          <p className="text-sm text-muted-foreground">Track and remind them on WhatsApp with one tap.</p>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Add someone who owes you
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Set their reminder rhythm now, or change it any time.
+          </p>
         </div>
+
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Details</CardTitle>
+            <CardTitle className="text-base">Who and how much</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={onSubmit} className="space-y-3">
               <div className="grid gap-3 sm:grid-cols-2">
-                <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground">Name</label>
-                  <input name="name" placeholder="John Doe" required className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground">Phone number (with country code)</label>
-                  <input name="phone" placeholder="+1234567890" required className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50" />
-                </div>
+                <label className="space-y-1">
+                  <span className="block text-xs text-muted-foreground">Name</span>
+                  <input
+                    name="name"
+                    required
+                    className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                  />
+                </label>
+                <label className="space-y-1">
+                  <span className="block text-xs text-muted-foreground">
+                    WhatsApp number, with country code
+                  </span>
+                  <input
+                    name="phone"
+                    required
+                    placeholder="+919876543210"
+                    className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                  />
+                </label>
               </div>
+
               <div className="grid gap-3 sm:grid-cols-2">
-                <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground">Amount owed</label>
-                  <input name="amount" type="number" step="0.01" placeholder="1000" required className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground">Currency</label>
-                  <select name="currency" defaultValue="USD" className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
+                <label className="space-y-1">
+                  <span className="block text-xs text-muted-foreground">Amount owed</span>
+                  <input
+                    name="amount"
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    required
+                    className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                  />
+                </label>
+                <label className="space-y-1">
+                  <span className="block text-xs text-muted-foreground">Currency</span>
+                  <select
+                    name="currency"
+                    defaultValue="USD"
+                    className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                  >
                     {CURRENCIES.map((c) => (
-                      <option key={c.code} value={c.code}>{c.code} - {c.name}</option>
+                      <option key={c.code} value={c.code}>
+                        {c.code} - {c.name}
+                      </option>
                     ))}
                   </select>
+                </label>
+              </div>
+
+              <label className="block space-y-1">
+                <span className="block text-xs text-muted-foreground">
+                  What is it for (optional)
+                </span>
+                <input
+                  name="reason"
+                  placeholder="Rent share, loan, design work"
+                  className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                />
+              </label>
+
+              <label className="block space-y-1">
+                <span className="block text-xs text-muted-foreground">
+                  Due date (optional)
+                </span>
+                <input
+                  name="due_date"
+                  type="date"
+                  className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                />
+              </label>
+
+              <div className="space-y-3 rounded-lg border bg-secondary/30 p-3">
+                <p className="text-xs font-medium">Reminder timing</p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="space-y-1">
+                    <span className="block text-xs text-muted-foreground">
+                      Remind every (days)
+                    </span>
+                    <input
+                      name="reminder_interval_days"
+                      type="number"
+                      min={1}
+                      max={365}
+                      defaultValue={DEBTOR_DEFAULTS.reminder_interval_days}
+                      className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                    />
+                  </label>
+                  <label className="space-y-1">
+                    <span className="block text-xs text-muted-foreground">At what time</span>
+                    <input
+                      name="reminder_time"
+                      type="time"
+                      defaultValue={DEBTOR_DEFAULTS.reminder_time}
+                      className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                    />
+                  </label>
+                  <label className="space-y-1">
+                    <span className="block text-xs text-muted-foreground">
+                      Stop after this many
+                    </span>
+                    <input
+                      name="max_reminders"
+                      type="number"
+                      min={1}
+                      max={50}
+                      defaultValue={DEBTOR_DEFAULTS.max_reminders}
+                      className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                    />
+                  </label>
+                  <label className="flex items-end gap-2 pb-2">
+                    <input name="auto_send" type="checkbox" className="size-4" />
+                    <span className="text-sm">
+                      Send automatically
+                      <span className="block text-[11px] text-muted-foreground">
+                        Needs a connected bridge
+                      </span>
+                    </span>
+                  </label>
                 </div>
+
+                <label className="block space-y-1">
+                  <span className="block text-xs text-muted-foreground">
+                    Your message. Use {"{{name}}"}, {"{{amount}}"}, {"{{reason}}"}
+                  </span>
+                  <textarea
+                    name="reminder_message"
+                    rows={3}
+                    placeholder="Leave empty to use the standard wording"
+                    className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                  />
+                </label>
               </div>
-              <div className="space-y-1">
-                <label className="text-xs text-muted-foreground">Reason (optional)</label>
-                <input name="reason" placeholder="Lunch money, rent share, etc." className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50" />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs text-muted-foreground">Due date (optional)</label>
-                <input name="due_date" type="date" className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50" />
-              </div>
+
               {error && <p className="text-xs text-destructive">{error}</p>}
-              <Button type="submit" disabled={loading}>{loading ? "Adding..." : "Add person"}</Button>
+
+              <div className="flex gap-2">
+                <Button type="submit" disabled={loading}>
+                  {loading ? "Adding..." : "Add person"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => router.push("/debtors")}
+                  disabled={loading}
+                >
+                  Cancel
+                </Button>
+              </div>
             </form>
           </CardContent>
         </Card>
