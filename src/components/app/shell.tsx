@@ -1,12 +1,14 @@
 import Link from "next/link";
-import { FileText, LayoutDashboard, Receipt, Settings } from "lucide-react";
+import { FileText, LayoutDashboard, Receipt, Settings, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 const NAV = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/invoices", label: "Invoices", icon: Receipt },
+  { href: "/debtors", label: "People who owe me", icon: Users },
   { href: "/contracts", label: "ClauseCheck", icon: FileText },
-  { href: "/settings", label: "Senders", icon: Settings },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export function AppShell({
@@ -28,15 +30,18 @@ export function AppShell({
               EscalatePay
             </span>
           </Link>
-          <span className="rounded-full border px-2 py-0.5 text-[11px] text-muted-foreground">
-            Sample data
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="hidden rounded-full border px-2 py-0.5 text-[11px] text-muted-foreground sm:inline-flex">
+              Sample data
+            </span>
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 
       <div className="mx-auto max-w-5xl px-4 pb-24 pt-6 sm:pb-10">
         <div className="flex flex-col gap-6 sm:flex-row sm:gap-8">
-          <nav className="hidden w-44 shrink-0 sm:block">
+          <nav className="hidden w-48 shrink-0 sm:block">
             <ul className="space-y-1">
               {NAV.map(({ href, label, icon: Icon }) => (
                 <li key={href}>
@@ -73,7 +78,7 @@ export function AppShell({
                     : "text-muted-foreground",
                 )}
               >
-                <Icon className="size-5" />
+                <Icon className="size-4" />
                 {label}
               </Link>
             </li>
