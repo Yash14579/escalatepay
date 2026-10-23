@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getDebtors } from "@/lib/data/debtors";
+import { databaseReady } from "@/lib/data/health";
 import { createClient } from "@/lib/supabase/server";
 import { formatCurrency } from "@/lib/currencies";
 import { DebtorActions } from "./actions/debtor-actions";
@@ -14,7 +15,8 @@ export const dynamic = "force-dynamic";
 export default async function DebtorsPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const debtors = user ? await getDebtors() : [];
+  const ready = user ? await databaseReady() : true;
+  const debtors = user && ready ? await getDebtors() : [];
 
   const totalOwed = debtors
     .filter((d: any) => d.status !== "paid")
@@ -56,7 +58,17 @@ export default async function DebtorsPage() {
           </Card>
         )}
 
-        {!user ? (
+        {user && !ready ? (
+          <Card className="border-warning/40 bg-[color-mix(in_oklch,var(--warning)_6%,transparent)]">
+            <CardContent className="space-y-2 py-6 text-center">
+              <p className="text-sm font-medium">Database setup needed</p>
+              <p className="text-xs text-muted-foreground">
+                Open Supabase, then SQL Editor, and run the file named
+                supabase-schema.sql from the project folder. Then reload this page.
+              </p>
+            </CardContent>
+          </Card>
+        ) : !user ? (
           <Card>
             <CardContent className="py-8 text-center">
               <p className="text-sm text-muted-foreground">Sign in to track people who owe you money</p>

@@ -2,6 +2,18 @@
 
 import { createClient } from "@/lib/supabase/server";
 
+/** Turns a raw Postgres/PostgREST error into something a person can act on. */
+function friendlyDbError(message: string): string {
+  if (message.includes("PGRST205") || message.includes("schema cache")) {
+    return "The database tables are not set up yet. Run supabase-schema.sql in your Supabase SQL editor, then try again.";
+  }
+  if (message.includes("row-level security")) {
+    return "You are not signed in, or your session expired. Sign in again and retry.";
+  }
+  return message;
+}
+
+
 export async function getDebtors() {
   const supabase = await createClient();
   const {
@@ -9,12 +21,16 @@ export async function getDebtors() {
   } = await supabase.auth.getUser();
   if (!user) return [];
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("debtors")
     .select("*")
     .eq("owner_id", user.id)
     .order("created_at", { ascending: false });
 
+  if (error) {
+    console.error("getDebtors failed:", error.message);
+    return [];
+  }
   return data ?? [];
 }
 
@@ -46,7 +62,7 @@ export async function createDebtor(formData: FormData) {
     .select()
     .single();
 
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(friendlyDbError(error.message));
   return data;
 }
 
@@ -66,7 +82,7 @@ export async function updateDebtorStatus(id: string, status: "pending" | "remind
     .eq("id", id)
     .eq("owner_id", user.id);
 
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(friendlyDbError(error.message));
 }
 
 export async function markPartial(id: string, amountPaidMinor: number) {
@@ -86,7 +102,7 @@ export async function markPartial(id: string, amountPaidMinor: number) {
     .eq("id", id)
     .eq("owner_id", user.id);
 
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(friendlyDbError(error.message));
 }
 
 export async function deleteDebtor(id: string) {
@@ -102,5 +118,5 @@ export async function deleteDebtor(id: string) {
     .eq("id", id)
     .eq("owner_id", user.id);
 
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(friendlyDbError(error.message));
 }

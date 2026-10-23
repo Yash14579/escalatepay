@@ -2,6 +2,18 @@
 
 import { createClient } from "@/lib/supabase/server";
 
+/** Turns a raw Postgres/PostgREST error into something a person can act on. */
+function friendlyDbError(message: string): string {
+  if (message.includes("PGRST205") || message.includes("schema cache")) {
+    return "The database tables are not set up yet. Run supabase-schema.sql in your Supabase SQL editor, then try again.";
+  }
+  if (message.includes("row-level security")) {
+    return "You are not signed in, or your session expired. Sign in again and retry.";
+  }
+  return message;
+}
+
+
 export async function getInvoices() {
   const supabase = await createClient();
   const {
@@ -9,12 +21,16 @@ export async function getInvoices() {
   } = await supabase.auth.getUser();
   if (!user) return [];
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("invoices")
     .select("*")
     .eq("owner_id", user.id)
     .order("created_at", { ascending: false });
 
+  if (error) {
+    console.error("getInvoices failed:", error.message);
+    return [];
+  }
   return data ?? [];
 }
 
@@ -68,7 +84,7 @@ export async function createInvoice(formData: FormData) {
     .select()
     .single();
 
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(friendlyDbError(error.message));
   return data;
 }
 
@@ -89,5 +105,5 @@ export async function setInvoiceStatus(id: string, status: "armed" | "paused" | 
     .eq("id", id)
     .eq("owner_id", user.id);
 
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(friendlyDbError(error.message));
 }

@@ -6,6 +6,7 @@ import { DEMO_INVOICES, sentStepsFor } from "@/lib/demo";
 import { nextStep, stepDueAt, STEP_LABEL } from "@/lib/engine/schedule";
 import { amountFor } from "@/lib/engine/templates";
 import { getInvoices } from "@/lib/data/invoices";
+import { databaseReady } from "@/lib/data/health";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +18,8 @@ export default async function InvoicesPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   const now = new Date();
-  const invoices = user ? await getInvoices() : DEMO_INVOICES;
+  const ready = user ? await databaseReady() : true;
+  const invoices = user ? (ready ? await getInvoices() : []) : DEMO_INVOICES;
 
   return (
     <AppShell current="/invoices">
@@ -37,6 +39,15 @@ export default async function InvoicesPage() {
             </Button>
           )}
         </div>
+
+        {user && !ready && (
+          <div className="rounded-lg border border-warning/40 bg-[color-mix(in_oklch,var(--warning)_6%,transparent)] p-4 text-center">
+            <p className="text-sm font-medium">Database setup needed</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Run supabase-schema.sql in the Supabase SQL editor, then reload.
+            </p>
+          </div>
+        )}
 
         <div className="space-y-3">
           {invoices.map((inv: any) => {
