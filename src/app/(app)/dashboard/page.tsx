@@ -1,132 +1,81 @@
 import Link from "next/link";
-import { AlertTriangle, ArrowRight, CheckCircle2, Clock } from "lucide-react";
+import { ArrowRight, CheckCircle2, Clock } from "lucide-react";
 import { AppShell } from "@/components/app/shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DEMO_INVOICES, sentStepsFor } from "@/lib/demo";
-import { nextStep, STEP_LABEL } from "@/lib/engine/schedule";
+import { Card, CardContent } from "@/components/ui/card";
+import { DEMO_INVOICES } from "@/lib/demo";
 import { amountFor } from "@/lib/engine/templates";
+import { getInvoices } from "@/lib/data/invoices";
+import { createClient } from "@/lib/supabase/server";
 
+export const dynamic = "force-dynamic";
 
 function StatusBadge({ status }: { status: string }) {
-  if (status === "paid")
-    return (
-      <Badge variant="success" className="gap-1">
-        <CheckCircle2 className="size-3" /> Paid
-      </Badge>
-    );
+  if (status === "paid") return <Badge variant="success" className="gap-1"><CheckCircle2 className="size-3" />Paid</Badge>;
   if (status === "armed") return <Badge variant="secondary">Armed</Badge>;
-  if (status === "paused")
-    return (
-      <Badge variant="warning" className="gap-1">
-        <Clock className="size-3" /> Paused
-      </Badge>
-    );
+  if (status === "paused") return <Badge variant="warning" className="gap-1"><Clock className="size-3" />Paused</Badge>;
   return <Badge variant="outline">{status}</Badge>;
 }
 
-const money0 = (minor: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(
-    minor / 100,
-  );
+const money0 = (minor: number, currency = "USD") => new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 0 }).format(minor / 100);
 
-export default function DashboardPage() {
-  const now = new Date();
+export default async function DashboardPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const invoices = user ? await getInvoices() : DEMO_INVOICES;
+  const isDemo = !user;
 
-  const armed = DEMO_INVOICES.filter((i) => i.status === "armed");
-  const paused = DEMO_INVOICES.filter((i) => i.status === "paused");
-  const paid = DEMO_INVOICES.filter((i) => i.status === "paid");
+  const armed = invoices.filter((i: any) => i.status === "armed");
+  const paused = invoices.filter((i: any) => i.status === "paused");
+  const paid = invoices.filter((i: any) => i.status === "paid");
 
-  const outstanding = [...armed, ...paused].reduce((s, i) => s + i.amountMinor, 0);
-  const dueNow = armed.filter((i) => nextStep(i, sentStepsFor(i.id), now));
+  const outstanding = [...armed, ...paused].reduce((s: number, i: any) => s + (isDemo ? i.amountMinor : i.amount_minor), 0);
+  const collected = paid.reduce((s: number, i: any) => s + (isDemo ? i.amountMinor : i.amount_minor), 0);
 
   return (
     <AppShell current="/dashboard">
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
-          <p className="text-sm text-muted-foreground">Who owes you what, and what happens next.</p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
+            <p className="text-sm text-muted-foreground">{user ? "Your overview" : "Sample overview"}</p>
+          </div>
+          {user ? (
+            <Button asChild size="sm"><Link href="/invoices/new">New invoice</Link></Button>
+          ) : (
+            <Button asChild size="sm" variant="outline"><Link href="/login">Sign in</Link></Button>
+          )}
         </div>
 
         <div className="grid gap-3 sm:grid-cols-3">
-          <Card className="py-4">
-            <CardContent className="space-y-1">
-              <p className="text-xs text-muted-foreground">Outstanding</p>
-              <p className="text-2xl font-semibold tracking-tight">{money0(outstanding)}</p>
-              <p className="text-xs text-muted-foreground">{armed.length} armed, {paused.length} paused</p>
-            </CardContent>
-          </Card>
-          <Card className="py-4">
-            <CardContent className="space-y-1">
-              <p className="text-xs text-muted-foreground">Action ready</p>
-              <p className="text-2xl font-semibold tracking-tight">{dueNow.length}</p>
-              <p className="text-xs text-muted-foreground">{dueNow.length === 1 ? "step waiting" : "steps waiting"}</p>
-            </CardContent>
-          </Card>
-          <Card className="py-4">
-            <CardContent className="space-y-1">
-              <p className="text-xs text-muted-foreground">Collected</p>
-              <p className="text-2xl font-semibold tracking-tight">{money0(paid.reduce((s, i) => s + i.amountMinor, 0))}</p>
-              <p className="text-xs text-muted-foreground">{paid.length} paid this cycle</p>
-            </CardContent>
-          </Card>
+          <Card className="py-4"><CardContent className="space-y-1"><p className="text-xs text-muted-foreground">Outstanding</p><p className="text-2xl font-semibold tracking-tight">{user ? money0(outstanding) : money0(outstanding)}</p><p className="text-xs text-muted-foreground">{armed.length} armed, {paused.length} paused</p></CardContent></Card>
+          <Card className="py-4"><CardContent className="space-y-1"><p className="text-xs text-muted-foreground">Invoices</p><p className="text-2xl font-semibold tracking-tight">{invoices.length}</p><p className="text-xs text-muted-foreground">{isDemo ? "demo" : "live"}</p></CardContent></Card>
+          <Card className="py-4"><CardContent className="space-y-1"><p className="text-xs text-muted-foreground">Collected</p><p className="text-2xl font-semibold tracking-tight">{money0(collected)}</p><p className="text-xs text-muted-foreground">{paid.length} paid</p></CardContent></Card>
         </div>
-
-        {dueNow.length > 0 && (
-          <Card className="border-warning/40 bg-[color-mix(in_oklch,var(--warning)_6%,transparent)]">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <AlertTriangle className="size-4 text-warning" />
-                Ready to go out
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {dueNow.map((inv) => {
-                const step = nextStep(inv, sentStepsFor(inv.id), now)!;
-                return (
-                  <div key={inv.id} className="flex flex-wrap items-center justify-between gap-2 text-sm">
-                    <span>
-                      <span className="font-medium">{inv.number}</span>{" "}
-                      <span className="text-muted-foreground">{inv.recipient.name}, {STEP_LABEL[step].toLowerCase()}</span>
-                    </span>
-                    <Button asChild size="sm" variant="outline">
-                      <Link href={`/invoices/${inv.id}`}>
-                        Review
-                        <ArrowRight className="size-3.5" />
-                      </Link>
-                    </Button>
-                  </div>
-                );
-              })}
-            </CardContent>
-          </Card>
-        )}
 
         <div>
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-sm font-medium">Invoices</h2>
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/invoices">View all</Link>
-            </Button>
+            <Button asChild variant="ghost" size="sm"><Link href="/invoices">View all</Link></Button>
           </div>
           <div className="space-y-2">
-            {DEMO_INVOICES.map((inv) => {
-              const sent = sentStepsFor(inv.id);
-              const step = nextStep(inv, sent, now);
+            {invoices.slice(0, 5).map((inv: any) => {
+              const name = isDemo ? inv.recipient.name : inv.recipient_name;
+              const number = inv.number;
+              const amount = isDemo ? amountFor(inv) : money0(inv.amount_minor, inv.currency);
               return (
                 <Link key={inv.id} href={`/invoices/${inv.id}`} className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-secondary/50">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="truncate text-sm font-medium">{inv.number}</span>
+                      <span className="truncate text-sm font-medium">{number}</span>
                       <StatusBadge status={inv.status} />
+                      {!user && <Badge variant="outline" className="text-[10px]">Demo</Badge>}
                     </div>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {inv.recipient.name} · {sent.length} of 4 sent
-                      {step ? ` · next: ${STEP_LABEL[step].toLowerCase()}` : ""}
-                    </p>
+                    <p className="truncate text-xs text-muted-foreground">{name}</p>
                   </div>
-                  <span className="shrink-0 text-sm font-medium tabular-nums">{amountFor(inv)}</span>
+                  <span className="shrink-0 text-sm font-medium tabular-nums">{amount}</span>
+                  <ArrowRight className="size-3.5 text-muted-foreground" />
                 </Link>
               );
             })}
