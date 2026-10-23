@@ -1,85 +1,22 @@
 import Link from "next/link";
-import {
-  AlertTriangle,
-  ArrowLeft,
-  BadgeCheck,
-  Check,
-  KeyRound,
-  QrCode,
-  Smartphone,
-} from "lucide-react";
+import { AlertTriangle, ArrowLeft, BookOpen, Check } from "lucide-react";
 import { AppShell } from "@/components/app/shell";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { createClient } from "@/lib/supabase/server";
+import { getBridge } from "@/lib/data/bridges";
+import { BRIDGE_PRESETS } from "@/lib/bridges/presets";
+import { BridgeForm } from "./bridge-form";
 
-const OPTIONS = [
-  {
-    id: "tap",
-    name: "One tap to send",
-    status: "works today",
-    statusVariant: "success" as const,
-    icon: Smartphone,
-    setup: "Nothing. Zero minutes.",
-    cost: "Free. Nothing to buy.",
-    risk: "None. You send from your own WhatsApp, exactly like typing it yourself.",
-    good:
-      "You stay in full control of every message. No account, no approval, no ban risk.",
-    bad:
-      "It cannot send by itself. The app tells you who is due, and you press send.",
-    steps: [
-      "Open People who owe me.",
-      "Find the person marked Reminder due.",
-      "Press Send on WhatsApp.",
-      "WhatsApp opens with the message already written. Press send there.",
-    ],
-  },
-  {
-    id: "bridge",
-    name: "Scan a QR code, then fully automatic",
-    status: "needs your own server",
-    statusVariant: "warning" as const,
-    icon: QrCode,
-    setup: "About an hour, and a small always-on computer or server.",
-    cost: "Free software. A VPS is about 5 to 8 dollars a month.",
-    risk:
-      "This uses an unofficial WhatsApp connection. WhatsApp's terms do not allow it, and they do ban numbers. Use a spare number, never your main business line.",
-    good:
-      "Once linked it sends by itself on your schedule, with no tapping.",
-    bad:
-      "You run and maintain a server. The number can be banned at any time.",
-    steps: [
-      "Get a small server (Hetzner, DigitalOcean, Railway, or a Raspberry Pi at home).",
-      "Install a WhatsApp bridge tool such as WAHA or Evolution API on it.",
-      "Open its dashboard and scan the QR code with the WhatsApp account you want to send from, the same way you link WhatsApp Web.",
-      "Send me the bridge address and its API key, and I will set the three settings on this project.",
-      "Turn on Send automatically for the people you want handled for you.",
-    ],
-  },
-  {
-    id: "cloud",
-    name: "Official WhatsApp Business API",
-    status: "business only",
-    statusVariant: "outline" as const,
-    icon: BadgeCheck,
-    setup: "A few days. Meta has to verify a business.",
-    cost:
-      "A Meta business account, and a small fee for each message. Roughly 0.0034 dollars per utility message to a US number, 0.1150 rupees to an Indian number.",
-    risk:
-      "None from WhatsApp. This is the route they intend you to use.",
-    good:
-      "Fully supported, no ban risk, and it scales if this becomes a real product.",
-    bad:
-      "Needs a registered business, approved message templates, and per-message billing. Overkill for chasing a few friends or clients.",
-    steps: [
-      "Create a Meta Business portfolio and verify the business.",
-      "Add a WhatsApp number you own to it.",
-      "Submit each reminder wording as a utility template and wait for approval.",
-      "Give me the phone number ID and access token, and I will connect it.",
-    ],
-  },
-];
+export const dynamic = "force-dynamic";
 
-export default function WhatsAppGuidePage() {
+export default async function WhatsAppSettingsPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const smsBridge = user ? await getBridge("sms") : null;
+  const waBridge = user ? await getBridge("whatsapp") : null;
+
   return (
     <AppShell current="/settings">
       <div className="space-y-6">
@@ -93,122 +30,154 @@ export default function WhatsAppGuidePage() {
 
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">
-            Connecting WhatsApp
+            Connect auto-send
           </h1>
           <p className="text-sm text-muted-foreground">
-            Three ways. Pick by how much automation you want versus how much
-            risk you will accept.
+            Paste your bridge details here and reminders can go out by
+            themselves. Nothing to configure in Vercel.
           </p>
         </div>
 
-        <Card className="border-warning/40 bg-[color-mix(in_oklch,var(--warning)_6%,transparent)]">
-          <CardContent className="flex gap-2 py-4 text-xs">
-            <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" />
-            <div className="space-y-1 text-muted-foreground">
-              <p className="font-medium text-foreground">
-                Straight answer before you choose
-              </p>
-              <p>
-                Automated messaging is regulated, and mass-reminding people who
-                did not agree to it can get a number banned or, in the US, lead
-                to per-message penalties.
-              </p>
-              <p>
-                Whichever route you pick, this app caps reminders per person,
-                stops when they are marked paid, and respects opt-outs.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        {!user && (
+          <Card>
+            <CardContent className="py-8 text-center text-sm text-muted-foreground">
+              <Link href="/login" className="underline">
+                Sign in
+              </Link>{" "}
+              to connect a bridge.
+            </CardContent>
+          </Card>
+        )}
 
-        <div className="space-y-4">
-          {OPTIONS.map((opt) => {
-            const Icon = opt.icon;
-            return (
-              <Card key={opt.id}>
-                <CardHeader>
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <CardTitle className="flex items-center gap-2 text-base">
-                      <Icon className="size-4" />
-                      {opt.name}
-                    </CardTitle>
-                    <Badge variant={opt.statusVariant}>{opt.status}</Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid gap-3 text-xs sm:grid-cols-3">
-                    <div>
-                      <p className="font-medium">Setup time</p>
-                      <p className="text-muted-foreground">{opt.setup}</p>
-                    </div>
-                    <div>
-                      <p className="font-medium">Cost</p>
-                      <p className="text-muted-foreground">{opt.cost}</p>
-                    </div>
-                    <div>
-                      <p className="font-medium">Risk</p>
-                      <p className="text-muted-foreground">{opt.risk}</p>
-                    </div>
-                  </div>
+        {user && (
+          <>
+            <Card>
+              <CardHeader>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <CardTitle className="text-base">
+                    SMS through your Android phone
+                  </CardTitle>
+                  <Badge variant="success">Free</Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-xs text-muted-foreground">
+                  Your phone sends the texts through its own SIM and your own
+                  recharge. No SMS API account, no per-message fee, no ban risk.
+                </p>
 
-                  <div className="grid gap-3 text-xs sm:grid-cols-2">
-                    <div className="rounded-md bg-secondary/50 p-2.5">
-                      <p className="mb-1 font-medium">What is good</p>
-                      <p className="text-muted-foreground">{opt.good}</p>
-                    </div>
-                    <div className="rounded-md bg-secondary/50 p-2.5">
-                      <p className="mb-1 font-medium">What is the catch</p>
-                      <p className="text-muted-foreground">{opt.bad}</p>
-                    </div>
-                  </div>
+                <ol className="space-y-1.5 text-xs text-muted-foreground">
+                  {[
+                    "On an Android phone with an active SIM, install SMS Gateway for Android from sms-gate.app.",
+                    "Open the app, turn on Cloud Server, and press Start.",
+                    "The app shows a username and password. Copy them into the boxes below.",
+                    "Press Save, then Test connection, then Send test to your own phone.",
+                  ].map((step, i) => (
+                    <li key={step} className="flex gap-2">
+                      <span className="grid size-4 shrink-0 place-items-center rounded-full bg-secondary text-[10px] font-medium text-foreground">
+                        {i + 1}
+                      </span>
+                      <span>{step}</span>
+                    </li>
+                  ))}
+                </ol>
 
-                  <div>
-                    <p className="mb-2 text-xs font-medium">How to set it up</p>
-                    <ol className="space-y-1.5 text-xs text-muted-foreground">
-                      {opt.steps.map((s, i) => (
-                        <li key={s} className="flex gap-2">
-                          <span className="grid size-4 shrink-0 place-items-center rounded-full bg-secondary text-[10px] font-medium text-foreground">
-                            {i + 1}
-                          </span>
-                          <span>{s}</span>
-                        </li>
-                      ))}
-                    </ol>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                <div className="rounded-md bg-secondary/50 p-2.5 text-xs text-muted-foreground">
+                  <p className="font-medium text-foreground">Want to keep it free</p>
+                  <p className="mt-0.5">
+                    Use the app pointed at its own private server, or the public
+                    cloud server as documented. Check the current terms at{" "}
+                    <span className="font-mono text-[11px]">sms-gate.app/pricing</span>{" "}
+                    before you rely on it for a lot of messages. I have not
+                    confirmed that the public cloud server stays free at high
+                    volume.
+                  </p>
+                </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <KeyRound className="size-4" />
-              Where the settings live
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-xs text-muted-foreground">
-            <p>
-              On Vercel, open the project, then Settings, then Environment
-              Variables. Add these three, and the app picks them up:
-            </p>
-            <ul className="space-y-1 font-mono text-[11px]">
-              <li>WHATSAPP_BRIDGE_URL</li>
-              <li>WHATSAPP_BRIDGE_KEY</li>
-              <li>WHATSAPP_BRIDGE_SESSION</li>
-            </ul>
-            <p className="flex items-start gap-1.5">
-              <Check className="mt-0.5 size-3.5 shrink-0 text-success" />
-              Never paste these keys into a chat or a GitHub file. Type them
-              straight into Vercel.
-            </p>
-            <p className="pt-1">
-              Until those are set, every person falls back to one-tap sending,
-              which always works.
-            </p>
-          </CardContent>
-        </Card>
+                <BridgeForm kind="sms" existing={smsBridge} />
+
+                <a
+                  href={BRIDGE_PRESETS.sms_gateway.doc}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs text-muted-foreground underline-offset-4 hover:underline"
+                >
+                  <BookOpen className="size-3.5" />
+                  Official setup guide
+                </a>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <CardTitle className="text-base">WhatsApp through WAHA</CardTitle>
+                  <Badge variant="warning">Ban risk</Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex gap-2 rounded-md border border-warning/40 bg-[color-mix(in_oklch,var(--warning)_8%,transparent)] p-2.5 text-xs">
+                  <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-warning" />
+                  <div className="text-muted-foreground">
+                    <p className="font-medium text-foreground">
+                      Read this before you connect
+                    </p>
+                    <p className="mt-0.5">
+                      WAHA drives WhatsApp through an unofficial client.
+                      WhatsApp&apos;s terms do not allow it and they do ban
+                      numbers for it. Use a spare number, warm it up slowly, and
+                      keep volume low. Never link the number your clients use to
+                      reach you.
+                    </p>
+                  </div>
+                </div>
+
+                <ol className="space-y-1.5 text-xs text-muted-foreground">
+                  {[
+                    "Run WAHA somewhere always on (Docker on a small server, or a PC you leave running).",
+                    "Open its dashboard, start a session, and scan the QR with the spare number.",
+                    "Expose it to the internet, for example with a free Cloudflare tunnel.",
+                    "Paste the address and API key below, then test.",
+                  ].map((step, i) => (
+                    <li key={step} className="flex gap-2">
+                      <span className="grid size-4 shrink-0 place-items-center rounded-full bg-secondary text-[10px] font-medium text-foreground">
+                        {i + 1}
+                      </span>
+                      <span>{step}</span>
+                    </li>
+                  ))}
+                </ol>
+
+                <BridgeForm kind="whatsapp" existing={waBridge} />
+
+                <a
+                  href={BRIDGE_PRESETS.waha.doc}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs text-muted-foreground underline-offset-4 hover:underline"
+                >
+                  <BookOpen className="size-3.5" />
+                  WAHA send-message docs
+                </a>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="space-y-2 py-4 text-xs text-muted-foreground">
+                <p className="flex items-start gap-1.5">
+                  <Check className="mt-0.5 size-3.5 shrink-0 text-success" />
+                  Without a bridge, every person still works with one-tap
+                  sending. Nothing breaks.
+                </p>
+                <p className="flex items-start gap-1.5">
+                  <Check className="mt-0.5 size-3.5 shrink-0 text-success" />
+                  Credentials are stored against your account and only readable
+                  by you. They are never shown back in full.
+                </p>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
     </AppShell>
   );

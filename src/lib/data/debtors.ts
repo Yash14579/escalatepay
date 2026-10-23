@@ -70,6 +70,8 @@ export async function createDebtor(formData: FormData) {
   const reminderTime = normalizeTime(String(formData.get("reminder_time") ?? "10:00"));
   const autoSend = formData.get("auto_send") === "on";
   const reminderMessage = String(formData.get("reminder_message") ?? "").trim() || null;
+  const rawChannel = String(formData.get("reminder_channel") ?? "whatsapp");
+  const reminderChannel: "whatsapp" | "sms" = rawChannel === "sms" ? "sms" : "whatsapp";
 
   if (!name) throw new Error("A name is required");
   if (!phone) throw new Error("A phone number is required");
@@ -97,6 +99,7 @@ export async function createDebtor(formData: FormData) {
       reminder_time: reminderTime,
       auto_send: autoSend,
       reminder_message: reminderMessage,
+      reminder_channel: reminderChannel,
       next_reminder_at: next.toISOString(),
     })
     .select()
@@ -114,6 +117,7 @@ export async function updateDebtorSchedule(
     max_reminders?: number;
     auto_send?: boolean;
     reminder_message?: string | null;
+    reminder_channel?: "whatsapp" | "sms";
   },
 ) {
   const supabase = await createClient();
@@ -143,6 +147,7 @@ export async function updateDebtorSchedule(
     row.max_reminders = v;
   }
   if (patch.auto_send !== undefined) row.auto_send = patch.auto_send;
+  if (patch.reminder_channel !== undefined) row.reminder_channel = patch.reminder_channel;
   if (patch.reminder_message !== undefined) {
     row.reminder_message = patch.reminder_message?.trim() || null;
   }

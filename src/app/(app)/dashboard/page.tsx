@@ -7,7 +7,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { DEMO_INVOICES } from "@/lib/demo";
 import { amountFor } from "@/lib/engine/templates";
 import { getInvoices } from "@/lib/data/invoices";
+import { getDebtors } from "@/lib/data/debtors";
+import { isReminderDue } from "@/lib/debtors/types";
 import { createClient } from "@/lib/supabase/server";
+import { RunNowButton } from "./run-now-button";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +28,9 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser();
   const invoices = user ? await getInvoices() : DEMO_INVOICES;
   const isDemo = !user;
+
+  const debtors = user ? await getDebtors() : [];
+  const dueDebtors = debtors.filter((d) => isReminderDue(d, new Date())).length;
 
   const armed = invoices.filter((i: any) => i.status === "armed");
   const paused = invoices.filter((i: any) => i.status === "paused");
@@ -53,6 +59,27 @@ export default async function DashboardPage() {
           <Card className="py-4"><CardContent className="space-y-1"><p className="text-xs text-muted-foreground">Invoices</p><p className="text-2xl font-semibold tracking-tight">{invoices.length}</p><p className="text-xs text-muted-foreground">{isDemo ? "demo" : "live"}</p></CardContent></Card>
           <Card className="py-4"><CardContent className="space-y-1"><p className="text-xs text-muted-foreground">Collected</p><p className="text-2xl font-semibold tracking-tight">{money0(collected)}</p><p className="text-xs text-muted-foreground">{paid.length} paid</p></CardContent></Card>
         </div>
+
+        {user && (
+          <div className="space-y-2 rounded-lg border p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="text-sm font-medium">
+                  People who owe you
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {dueDebtors === 0
+                    ? "Nobody is due a reminder right now."
+                    : `${dueDebtors} ${dueDebtors === 1 ? "person is" : "people are"} due a reminder.`}
+                </p>
+              </div>
+              <Button asChild variant="ghost" size="sm">
+                <Link href="/debtors">Open</Link>
+              </Button>
+            </div>
+            <RunNowButton dueCount={dueDebtors} />
+          </div>
+        )}
 
         <div>
           <div className="mb-3 flex items-center justify-between">

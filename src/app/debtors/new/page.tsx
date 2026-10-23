@@ -156,6 +156,17 @@ export default function NewDebtorPage() {
                       className="w-full rounded-md border bg-background px-3 py-2 text-sm"
                     />
                   </label>
+                  <label className="space-y-1">
+                    <span className="block text-xs text-muted-foreground">Send by</span>
+                    <select
+                      name="reminder_channel"
+                      defaultValue="whatsapp"
+                      className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                    >
+                      <option value="whatsapp">WhatsApp</option>
+                      <option value="sms">SMS</option>
+                    </select>
+                  </label>
                   <label className="flex items-end gap-2 pb-2">
                     <input name="auto_send" type="checkbox" className="size-4" />
                     <span className="text-sm">

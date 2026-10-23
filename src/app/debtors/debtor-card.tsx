@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { deleteDebtor, recordReminderSent, updateDebtorStatus } from "@/lib/data/debtors";
+import { runDueNow } from "@/lib/data/run-now";
 import type { Debtor } from "@/lib/debtors/types";
 import { formatCurrency } from "@/lib/currencies";
 
@@ -46,6 +47,30 @@ export function DebtorCard({
   const exhausted = debtor.reminder_count >= debtor.max_reminders;
 
   const sendWhatsApp = () => {
+    // When auto-send is on and a bridge is connected, the server does the work.
+    if (debtor.auto_send) {
+      startTransition(async () => {
+        try {
+          const r = await runDueNow();
+          if (r.sent > 0) {
+            router.refresh();
+            return;
+          }
+          // Nothing sent automatically, so fall back to one tap.
+          window.open(whatsappDeepLink(debtor.phone, message), "_blank", "noopener");
+          await recordReminderSent(debtor.id, {
+            channel: "whatsapp",
+            body: message,
+            outcome: "queued",
+          });
+          router.refresh();
+        } catch (e) {
+          setError(e instanceof Error ? e.message : "Could not save");
+        }
+      });
+      return;
+    }
+
     window.open(whatsappDeepLink(debtor.phone, message), "_blank", "noopener");
     startTransition(async () => {
       try {

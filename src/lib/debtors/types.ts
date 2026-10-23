@@ -31,6 +31,8 @@ export interface Debtor {
   auto_send: boolean;
   /** Optional custom wording. Null uses the built-in default. */
   reminder_message: string | null;
+  /** Which channel this person's reminders go out on. */
+  reminder_channel: "whatsapp" | "sms";
 }
 
 export const DEBTOR_DEFAULTS = {

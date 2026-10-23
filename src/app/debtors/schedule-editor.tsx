@@ -27,6 +27,9 @@ export function ScheduleEditor({
   const [timeOfDay, setTimeOfDay] = useState(debtor.reminder_time);
   const [maxReminders, setMaxReminders] = useState(String(debtor.max_reminders));
   const [autoSend, setAutoSend] = useState(debtor.auto_send);
+  const [channel, setChannel] = useState<"whatsapp" | "sms">(
+    debtor.reminder_channel ?? "whatsapp",
+  );
   const [message, setMessage] = useState(debtor.reminder_message ?? "");
 
   const save = () => {
@@ -39,6 +42,7 @@ export function ScheduleEditor({
           max_reminders: Number(maxReminders),
           auto_send: autoSend,
           reminder_message: message.trim() ? message : null,
+          reminder_channel: channel,
         });
         router.refresh();
         onClose();
@@ -81,6 +85,17 @@ export function ScheduleEditor({
             onChange={(e) => setMaxReminders(e.target.value)}
             className="w-full rounded-md border bg-background px-3 py-1.5 text-sm"
           />
+        </label>
+        <label className="space-y-1">
+          <span className="block text-xs text-muted-foreground">Send by</span>
+          <select
+            value={channel}
+            onChange={(e) => setChannel(e.target.value as "whatsapp" | "sms")}
+            className="w-full rounded-md border bg-background px-3 py-1.5 text-sm"
+          >
+            <option value="whatsapp">WhatsApp</option>
+            <option value="sms">SMS</option>
+          </select>
         </label>
         <label className="flex items-end gap-2 pb-1.5">
           <input
